@@ -1,0 +1,62 @@
+{
+  "rabbit_version": "4.0",
+  "users": [
+    { "name": "guest", "password": "guest", "tags": "administrator" }
+  ],
+  "vhosts": [{ "name": "/" }],
+  "permissions": [
+    { "user": "guest", "vhost": "/", "configure": ".*", "write": ".*", "read": ".*" }
+  ],
+  "exchanges": [
+    { "name": "booking.exchange", "vhost": "/", "type": "topic", "durable": true, "auto_delete": false },
+    { "name": "booking.exchange.dlx", "vhost": "/", "type": "topic", "durable": true, "auto_delete": false },
+    { "name": "seat.exchange", "vhost": "/", "type": "topic", "durable": true, "auto_delete": false },
+    { "name": "seat.exchange.dlx", "vhost": "/", "type": "topic", "durable": true, "auto_delete": false },
+    { "name": "payment.exchange", "vhost": "/", "type": "topic", "durable": true, "auto_delete": false },
+    { "name": "payment.exchange.dlx", "vhost": "/", "type": "topic", "durable": true, "auto_delete": false },
+    { "name": "ticket.exchange", "vhost": "/", "type": "topic", "durable": true, "auto_delete": false },
+    { "name": "ticket.exchange.dlx", "vhost": "/", "type": "topic", "durable": true, "auto_delete": false },
+    { "name": "notification.exchange", "vhost": "/", "type": "topic", "durable": true, "auto_delete": false },
+    { "name": "notification.exchange.dlx", "vhost": "/", "type": "topic", "durable": true, "auto_delete": false }
+  ],
+  "queues": [
+    { "name": "booking.commands", "vhost": "/", "durable": true, "auto_delete": false, "arguments": { "x-dead-letter-exchange": "booking.exchange.dlx", "x-dead-letter-routing-key": "booking.commands.dead", "x-message-ttl": 30000 } },
+    { "name": "booking.commands.dlq", "vhost": "/", "durable": true, "auto_delete": false },
+    { "name": "seat.commands", "vhost": "/", "durable": true, "auto_delete": false, "arguments": { "x-dead-letter-exchange": "seat.exchange.dlx", "x-dead-letter-routing-key": "seat.commands.dead", "x-message-ttl": 30000 } },
+    { "name": "seat.commands.dlq", "vhost": "/", "durable": true, "auto_delete": false },
+    { "name": "payment.commands", "vhost": "/", "durable": true, "auto_delete": false, "arguments": { "x-dead-letter-exchange": "payment.exchange.dlx", "x-dead-letter-routing-key": "payment.commands.dead", "x-message-ttl": 30000 } },
+    { "name": "payment.commands.dlq", "vhost": "/", "durable": true, "auto_delete": false },
+    { "name": "ticket.commands", "vhost": "/", "durable": true, "auto_delete": false, "arguments": { "x-dead-letter-exchange": "ticket.exchange.dlx", "x-dead-letter-routing-key": "ticket.commands.dead", "x-message-ttl": 30000 } },
+    { "name": "ticket.commands.dlq", "vhost": "/", "durable": true, "auto_delete": false },
+    { "name": "notification.commands", "vhost": "/", "durable": true, "auto_delete": false, "arguments": { "x-dead-letter-exchange": "notification.exchange.dlx", "x-dead-letter-routing-key": "notification.commands.dead", "x-message-ttl": 30000 } },
+    { "name": "notification.commands.dlq", "vhost": "/", "durable": true, "auto_delete": false }
+  ],
+  "bindings": [
+    { "source": "booking.exchange", "vhost": "/", "destination": "booking.commands", "destination_type": "queue", "routing_key": "booking.created", "arguments": {} },
+    { "source": "booking.exchange", "vhost": "/", "destination": "booking.commands", "destination_type": "queue", "routing_key": "booking.confirmed", "arguments": {} },
+    { "source": "booking.exchange", "vhost": "/", "destination": "booking.commands", "destination_type": "queue", "routing_key": "booking.failed", "arguments": {} },
+    { "source": "booking.exchange.dlx", "vhost": "/", "destination": "booking.commands.dlq", "destination_type": "queue", "routing_key": "booking.commands.dead", "arguments": {} },
+    { "source": "seat.exchange", "vhost": "/", "destination": "seat.commands", "destination_type": "queue", "routing_key": "seat.reserve.command", "arguments": {} },
+    { "source": "seat.exchange", "vhost": "/", "destination": "seat.commands", "destination_type": "queue", "routing_key": "seat.released", "arguments": {} },
+    { "source": "seat.exchange.dlx", "vhost": "/", "destination": "seat.commands.dlq", "destination_type": "queue", "routing_key": "seat.commands.dead", "arguments": {} },
+    { "source": "payment.exchange", "vhost": "/", "destination": "payment.commands", "destination_type": "queue", "routing_key": "payment.authorize.command", "arguments": {} },
+    { "source": "payment.exchange", "vhost": "/", "destination": "payment.commands", "destination_type": "queue", "routing_key": "payment.refunded", "arguments": {} },
+    { "source": "payment.exchange.dlx", "vhost": "/", "destination": "payment.commands.dlq", "destination_type": "queue", "routing_key": "payment.commands.dead", "arguments": {} },
+    { "source": "ticket.exchange", "vhost": "/", "destination": "ticket.commands", "destination_type": "queue", "routing_key": "ticket.issue.command", "arguments": {} },
+    { "source": "ticket.exchange", "vhost": "/", "destination": "ticket.commands", "destination_type": "queue", "routing_key": "ticket.cancelled", "arguments": {} },
+    { "source": "ticket.exchange.dlx", "vhost": "/", "destination": "ticket.commands.dlq", "destination_type": "queue", "routing_key": "ticket.commands.dead", "arguments": {} },
+    { "source": "notification.exchange", "vhost": "/", "destination": "notification.commands", "destination_type": "queue", "routing_key": "email.send.command", "arguments": {} },
+    { "source": "notification.exchange.dlx", "vhost": "/", "destination": "notification.commands.dlq", "destination_type": "queue", "routing_key": "notification.commands.dead", "arguments": {} },
+    { "source": "seat.exchange", "vhost": "/", "destination": "booking.commands", "destination_type": "queue", "routing_key": "seat.reserved", "arguments": {} },
+    { "source": "seat.exchange", "vhost": "/", "destination": "booking.commands", "destination_type": "queue", "routing_key": "seat.reservation.failed", "arguments": {} },
+    { "source": "seat.exchange", "vhost": "/", "destination": "booking.commands", "destination_type": "queue", "routing_key": "seat.released", "arguments": {} },
+    { "source": "payment.exchange", "vhost": "/", "destination": "booking.commands", "destination_type": "queue", "routing_key": "payment.authorized", "arguments": {} },
+    { "source": "payment.exchange", "vhost": "/", "destination": "booking.commands", "destination_type": "queue", "routing_key": "payment.authorization.failed", "arguments": {} },
+    { "source": "payment.exchange", "vhost": "/", "destination": "booking.commands", "destination_type": "queue", "routing_key": "payment.refunded", "arguments": {} },
+    { "source": "ticket.exchange", "vhost": "/", "destination": "booking.commands", "destination_type": "queue", "routing_key": "ticket.issued", "arguments": {} },
+    { "source": "ticket.exchange", "vhost": "/", "destination": "booking.commands", "destination_type": "queue", "routing_key": "ticket.issue.failed", "arguments": {} },
+    { "source": "ticket.exchange", "vhost": "/", "destination": "booking.commands", "destination_type": "queue", "routing_key": "ticket.cancelled", "arguments": {} },
+    { "source": "notification.exchange", "vhost": "/", "destination": "booking.commands", "destination_type": "queue", "routing_key": "email.sent", "arguments": {} },
+    { "source": "notification.exchange", "vhost": "/", "destination": "booking.commands", "destination_type": "queue", "routing_key": "email.failed", "arguments": {} }
+  ]
+}

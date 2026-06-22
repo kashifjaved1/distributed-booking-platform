@@ -1,0 +1,58 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", "Space Grotesk", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", "Courier New", monospace;
+  
+  --color-immersive-bg: #020204;
+  --color-immersive-header: #050508;
+  --color-immersive-card: #0c0c14;
+  --color-immersive-card-light: #12121e;
+  --color-immersive-border: #1a1a2e;
+  
+  --color-immersive-blue: #00b4ff;
+  --color-immersive-darkblue: #0047ff;
+  --color-immersive-green: #00ff64;
+  --color-immersive-amber: #ffbf00;
+  --color-immersive-red: #ff4444;
+  --color-immersive-text: #E0E0E0;
+}
+
+@utility glow-green {
+  box-shadow: 0 0 12px rgba(0, 255, 100, 0.4);
+  border: 1px solid #00ff64;
+}
+
+@utility glow-amber {
+  box-shadow: 0 0 12px rgba(255, 191, 0, 0.4);
+  border: 1px solid #ffbf00;
+}
+
+@utility glow-blue {
+  box-shadow: 0 0 12px rgba(0, 180, 255, 0.4);
+  border: 1px solid #00b4ff;
+}
+
+/* Base Body Styles for Immersive UI */
+body {
+  background-color: #020204 !important;
+  color: #E0E0E0 !important;
+  font-family: var(--font-sans);
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #020204;
+}
+::-webkit-scrollbar-thumb {
+  background: #1a1a2e;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #00b4ff80;
+}

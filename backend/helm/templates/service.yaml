@@ -1,0 +1,75 @@
+{{- range $name, $config := .Values.services }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}-service
+  namespace: {{ $.Values.global.namespace }}
+  labels:
+    app: {{ $name }}-service
+    {{- include "bookingplatform.labels" $ | nindent 4 }}
+spec:
+  replicas: {{ $config.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ $name }}-service
+  template:
+    metadata:
+      labels:
+        app: {{ $name }}-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/metrics"
+        prometheus.io/port: "{{ $config.port }}"
+    spec:
+      containers:
+        - name: {{ $name }}-service
+          image: {{ $config.image }}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: {{ $config.port }}
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: Production
+            - name: ASPNETCORE_URLS
+              value: http://+:{{ $config.port }}
+            - name: ConnectionStrings__{{ $config.database }}
+              value: {{ include "bookingplatform.postgres.connection" (dict "database" $config.database "Values" $) }}
+            - name: ConnectionStrings__RabbitMQ
+              value: {{ include "bookingplatform.rabbitmq.connection" $ }}
+            - name: RabbitMQ__{{ $name }}__Host
+              value: rabbitmq
+            - name: OpenTelemetry__OtlpExporter__Endpoint
+              value: http://otel-collector:4317
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: {{ $config.port }}
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: {{ $config.port }}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              memory: {{ $config.resources.requests.memory }}
+              cpu: {{ $config.resources.requests.cpu }}
+            limits:
+              memory: {{ $config.resources.limits.memory }}
+              cpu: {{ $config.resources.limits.cpu }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}-service
+  namespace: {{ $.Values.global.namespace }}
+spec:
+  ports:
+    - port: {{ $config.port }}
+      targetPort: {{ $config.port }}
+  selector:
+    app: {{ $name }}-service
+---
+{{- end }}

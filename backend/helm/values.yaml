@@ -1,0 +1,83 @@
+global:
+  namespace: booking-platform
+  postgres:
+    image: postgres:16-alpine
+    username: postgres
+    password: postgres
+  rabbitmq:
+    image: rabbitmq:4-management
+    username: guest
+    password: guest
+
+services:
+  booking:
+    replicaCount: 2
+    image: booking-service:latest
+    port: 80
+    database: BookingDB
+    resources:
+      requests: { memory: "128Mi", cpu: "100m" }
+      limits: { memory: "256Mi", cpu: "500m" }
+
+  seat:
+    replicaCount: 2
+    image: seat-service:latest
+    port: 80
+    database: SeatDB
+    resources:
+      requests: { memory: "128Mi", cpu: "100m" }
+      limits: { memory: "256Mi", cpu: "500m" }
+
+  payment:
+    replicaCount: 2
+    image: payment-service:latest
+    port: 80
+    database: PaymentDB
+    resources:
+      requests: { memory: "128Mi", cpu: "100m" }
+      limits: { memory: "256Mi", cpu: "500m" }
+
+  ticket:
+    replicaCount: 2
+    image: ticket-service:latest
+    port: 80
+    database: TicketDB
+    resources:
+      requests: { memory: "128Mi", cpu: "100m" }
+      limits: { memory: "256Mi", cpu: "500m" }
+
+  notification:
+    replicaCount: 2
+    image: notification-service:latest
+    port: 80
+    database: NotificationDB
+    resources:
+      requests: { memory: "128Mi", cpu: "100m" }
+      limits: { memory: "256Mi", cpu: "500m" }
+
+monitoring:
+  enabled: true
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+  prometheus:
+    image: prom/prometheus:latest
+  grafana:
+    image: grafana/grafana:latest
+    adminUser: admin
+    adminPassword: admin
+  otelCollector:
+    image: otel/opentelemetry-collector-contrib:latest
+
+rabbitmq:
+  exchange:
+    booking: booking.exchange
+    seat: seat.exchange
+    payment: payment.exchange
+    ticket: ticket.exchange
+    notification: notification.exchange
+  dlq:
+    booking: booking.dlq
+    seat: seat.dlq
+    payment: payment.dlq
+    ticket: ticket.dlq
+    notification: notification.dlq

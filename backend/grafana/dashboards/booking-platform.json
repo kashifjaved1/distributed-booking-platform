@@ -1,0 +1,93 @@
+{
+  "title": "Booking Platform Dashboard",
+  "uid": "booking-platform",
+  "version": 1,
+  "schemaVersion": 38,
+  "panels": [
+    {
+      "title": "Booking Success Rate",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "rate(http_server_duration_ms_count{http_route=~\"/api/bookings.*\", http_status_code=~\"2.*\"}[5m]) / rate(http_server_duration_ms_count{http_route=~\"/api/bookings.*\"}[5m]) * 100",
+          "legendFormat": "Success Rate"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 }
+    },
+    {
+      "title": "Booking Failure Rate",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "rate(http_server_duration_ms_count{http_route=~\"/api/bookings.*\", http_status_code=~\"4.*|5.*\"}[5m]) / rate(http_server_duration_ms_count{http_route=~\"/api/bookings.*\"}[5m]) * 100",
+          "legendFormat": "Failure Rate"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 }
+    },
+    {
+      "title": "Saga Compensations",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "rate(saga_compensations_total[5m])",
+          "legendFormat": "Compensations/s"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 }
+    },
+    {
+      "title": "Outbox Queue Depth",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "outbox_pending_messages",
+          "legendFormat": "{{service}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 }
+    },
+    {
+      "title": "DLQ Messages",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "rabbitmq_queues_messages{queue=~\".*dlq\"}",
+          "legendFormat": "{{queue}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 }
+    },
+    {
+      "title": "Message Retry Rate",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "rate(message_retries_total[5m])",
+          "legendFormat": "{{service}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 }
+    },
+    {
+      "title": "HTTP Request Duration (p95)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, rate(http_server_duration_ms_bucket[5m]))",
+          "legendFormat": "{{service}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 }
+    }
+  ],
+  "templating": { "list": [] }
+}

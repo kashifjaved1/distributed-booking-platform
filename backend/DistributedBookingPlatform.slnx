@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/BuildingBlocks/">
+    <Project Path="src/BuildingBlocks/BookingPlatform.Common/BookingPlatform.Common.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/">
+    <Project Path="src/Services/BookingService/BookingService.csproj" />
+    <Project Path="src/Services/NotificationService/NotificationService.csproj" />
+    <Project Path="src/Services/PaymentService/PaymentService.csproj" />
+    <Project Path="src/Services/SeatService/SeatService.csproj" />
+    <Project Path="src/Services/TicketService/TicketService.csproj" />
+  </Folder>
+</Solution>

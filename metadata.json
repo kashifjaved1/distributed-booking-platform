@@ -1,0 +1,6 @@
+{
+  "name": "Distributed Booking Platform",
+  "description": "Enterprise-grade distributed booking platform demonstrating Saga, Transactional Outbox, RabbitMQ, and microservices patterns in ASP.NET Core.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

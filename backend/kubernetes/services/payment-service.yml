@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-service
+  namespace: booking-platform
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: payment-service
+  template:
+    metadata:
+      labels:
+        app: payment-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/metrics"
+        prometheus.io/port: "80"
+    spec:
+      containers:
+        - name: payment-service
+          image: payment-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: Production
+            - name: ASPNETCORE_URLS
+              value: http://+:80
+            - name: ConnectionStrings__PaymentDB
+              value: Host=postgres;Port=5432;Database=PaymentDB;Username=postgres;Password=postgres
+            - name: ConnectionStrings__RabbitMQ
+              value: amqp://guest:guest@rabbitmq:5672
+            - name: RabbitMQ__payment__Host
+              value: rabbitmq
+            - name: OpenTelemetry__OtlpExporter__Endpoint
+              value: http://otel-collector:4317
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment-service
+  namespace: booking-platform
+spec:
+  ports:
+    - port: 80
+      targetPort: 80
+  selector:
+    app: payment-service

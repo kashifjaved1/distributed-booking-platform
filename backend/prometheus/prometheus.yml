@@ -1,0 +1,38 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+rule_files: []
+
+scrape_configs:
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: "otel-collector"
+    scrape_interval: 10s
+    static_configs:
+      - targets: ["otel-collector:8889"]
+
+  - job_name: "booking-service"
+    scrape_interval: 10s
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - "booking-service:80"
+          - "seat-service:80"
+          - "payment-service:80"
+          - "ticket-service:80"
+          - "notification-service:80"
+
+  - job_name: "rabbitmq"
+    scrape_interval: 15s
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["rabbitmq:15692"]

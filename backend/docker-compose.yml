@@ -1,0 +1,235 @@
+version: "3.9"
+
+networks:
+  booking-platform:
+    driver: bridge
+
+volumes:
+  postgres-booking:
+  postgres-seat:
+  postgres-payment:
+  postgres-ticket:
+  postgres-notification:
+  rabbitmq-data:
+  jaeger-data:
+  prometheus-data:
+  grafana-data:
+
+services:
+  # ===================== Infrastructure =====================
+  rabbitmq:
+    image: rabbitmq:4-management
+    container_name: booking-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: -rabbit heartbeat 30
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+      - ./rabbitmq/definitions.json:/etc/rabbitmq/definitions.json:ro
+      - ./rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - booking-platform
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: booking-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_MULTIPLE_DATABASES: BookingDB,SeatDB,PaymentDB,TicketDB,NotificationDB
+    volumes:
+      - postgres-booking:/var/lib/postgresql/data
+      - ./postgres/init-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-multiple-dbs.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - booking-platform
+
+  # ===================== Observability =====================
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: booking-jaeger
+    ports:
+      - "16686:16686" # UI only; OTLP ports are internal for otel-collector
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+      SPAN_STORAGE_TYPE: "badger"
+    volumes:
+      - jaeger-data:/badger
+    networks:
+      - booking-platform
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: booking-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    networks:
+      - booking-platform
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: booking-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_INSTALL_PLUGINS: ""
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    networks:
+      - booking-platform
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: booking-otel-collector
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+      - "8888:8888"
+      - "8889:8889"
+    volumes:
+      - ./opentelemetry/otel-collector.yml:/etc/otel-collector.yml:ro
+    command: ["--config=/etc/otel-collector.yml"]
+    depends_on:
+      - jaeger
+      - prometheus
+    networks:
+      - booking-platform
+
+  # ===================== Microservices =====================
+  booking-service:
+    build:
+      context: .
+      dockerfile: src/Services/BookingService/Dockerfile
+    container_name: booking-service
+    ports:
+      - "5010:80"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:80
+      ConnectionStrings__BookingDB: Host=postgres;Port=5432;Database=BookingDB;Username=postgres;Password=postgres
+      ConnectionStrings__RabbitMQ: amqp://guest:guest@rabbitmq:5672
+      RabbitMQ__booking__Host: rabbitmq
+      OpenTelemetry__OtlpExporter__Endpoint: http://otel-collector:4317
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - booking-platform
+
+  seat-service:
+    build:
+      context: .
+      dockerfile: src/Services/SeatService/Dockerfile
+    container_name: seat-service
+    ports:
+      - "5002:80"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:80
+      ConnectionStrings__SeatDB: Host=postgres;Port=5432;Database=SeatDB;Username=postgres;Password=postgres
+      ConnectionStrings__RabbitMQ: amqp://guest:guest@rabbitmq:5672
+      RabbitMQ__seat__Host: rabbitmq
+      OpenTelemetry__OtlpExporter__Endpoint: http://otel-collector:4317
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - booking-platform
+
+  payment-service:
+    build:
+      context: .
+      dockerfile: src/Services/PaymentService/Dockerfile
+    container_name: payment-service
+    ports:
+      - "5003:80"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:80
+      ConnectionStrings__PaymentDB: Host=postgres;Port=5432;Database=PaymentDB;Username=postgres;Password=postgres
+      ConnectionStrings__RabbitMQ: amqp://guest:guest@rabbitmq:5672
+      RabbitMQ__payment__Host: rabbitmq
+      OpenTelemetry__OtlpExporter__Endpoint: http://otel-collector:4317
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - booking-platform
+
+  ticket-service:
+    build:
+      context: .
+      dockerfile: src/Services/TicketService/Dockerfile
+    container_name: ticket-service
+    ports:
+      - "5004:80"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:80
+      ConnectionStrings__TicketDB: Host=postgres;Port=5432;Database=TicketDB;Username=postgres;Password=postgres
+      ConnectionStrings__RabbitMQ: amqp://guest:guest@rabbitmq:5672
+      RabbitMQ__ticket__Host: rabbitmq
+      OpenTelemetry__OtlpExporter__Endpoint: http://otel-collector:4317
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - booking-platform
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: src/Services/NotificationService/Dockerfile
+    container_name: notification-service
+    ports:
+      - "5005:80"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:80
+      ConnectionStrings__NotificationDB: Host=postgres;Port=5432;Database=NotificationDB;Username=postgres;Password=postgres
+      ConnectionStrings__RabbitMQ: amqp://guest:guest@rabbitmq:5672
+      RabbitMQ__notification__Host: rabbitmq
+      OpenTelemetry__OtlpExporter__Endpoint: http://otel-collector:4317
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - booking-platform
